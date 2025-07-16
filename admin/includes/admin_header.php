@@ -69,18 +69,21 @@ $currentAdmin = getCurrentAdmin();
                             <i class="fas fa-plus me-1"></i> Hızlı Ekle
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="sites.php?action=create">
-                                <i class="fas fa-globe me-2"></i> Yeni Site
+                            <li><a class="dropdown-item" href="site-yonetimi.php">
+                                <i class="fas fa-building me-2"></i> Yeni Site
                             </a></li>
-                            <li><a class="dropdown-item" href="bonuses.php?action=create">
+                            <li><a class="dropdown-item" href="bonus-yonetimi.php">
                                 <i class="fas fa-gift me-2"></i> Yeni Bonus
                             </a></li>
-                            <li><a class="dropdown-item" href="banners.php?action=create">
-                                <i class="fas fa-image me-2"></i> Yeni Banner
+                            <li><a class="dropdown-item" href="banner-yonetimi.php">
+                                <i class="fas fa-rectangle-ad me-2"></i> Yeni Banner
+                            </a></li>
+                            <li><a class="dropdown-item" href="kategori-yonetimi.php">
+                                <i class="fas fa-tags me-2"></i> Yeni Kategori
                             </a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="media.php">
-                                <i class="fas fa-upload me-2"></i> Medya Yükle
+                            <li><a class="dropdown-item" href="kullanici-yonetimi.php">
+                                <i class="fas fa-users me-2"></i> Kullanıcı Yönetimi
                             </a></li>
                         </ul>
                     </li>
@@ -196,38 +199,26 @@ $currentAdmin = getCurrentAdmin();
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'sites.php' ? 'active' : ''; ?>" 
-                           href="sites.php">
-                            <i class="fas fa-globe"></i>
-                            <span>Casino Siteleri</span>
-                            <?php
-                            $pendingSites = $db->fetchColumn("SELECT COUNT(*) FROM sites WHERE status = 0");
-                            if ($pendingSites > 0):
-                            ?>
-                            <span class="badge bg-warning ms-auto"><?php echo $pendingSites; ?></span>
-                            <?php endif; ?>
+                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'site-yonetimi.php' ? 'active' : ''; ?>" 
+                           href="site-yonetimi.php">
+                            <i class="fas fa-building"></i>
+                            <span>Site Yönetimi</span>
                         </a>
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'bonuses.php' ? 'active' : ''; ?>" 
-                           href="bonuses.php">
+                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'bonus-yonetimi.php' ? 'active' : ''; ?>" 
+                           href="bonus-yonetimi.php">
                             <i class="fas fa-gift"></i>
-                            <span>Bonuslar</span>
-                            <?php
-                            $pendingBonuses = $db->fetchColumn("SELECT COUNT(*) FROM bonuses WHERE status = 0");
-                            if ($pendingBonuses > 0):
-                            ?>
-                            <span class="badge bg-warning ms-auto"><?php echo $pendingBonuses; ?></span>
-                            <?php endif; ?>
+                            <span>Bonus Yönetimi</span>
                         </a>
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'categories.php' ? 'active' : ''; ?>" 
-                           href="categories.php">
+                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'kategori-yonetimi.php' ? 'active' : ''; ?>" 
+                           href="kategori-yonetimi.php">
                             <i class="fas fa-tags"></i>
-                            <span>Kategoriler</span>
+                            <span>Kategori Yönetimi</span>
                         </a>
                     </li>
                     
@@ -245,10 +236,10 @@ $currentAdmin = getCurrentAdmin();
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'banners.php' ? 'active' : ''; ?>" 
-                           href="banners.php">
-                            <i class="fas fa-image"></i>
-                            <span>Bannerlar</span>
+                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'banner-yonetimi.php' ? 'active' : ''; ?>" 
+                           href="banner-yonetimi.php">
+                            <i class="fas fa-rectangle-ad"></i>
+                            <span>Banner Yönetimi</span>
                         </a>
                     </li>
                     
@@ -302,10 +293,10 @@ $currentAdmin = getCurrentAdmin();
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'users.php' ? 'active' : ''; ?>" 
-                           href="users.php">
+                        <a class="nav-link <?php echo basename($_SERVER['PHP_SELF']) === 'kullanici-yonetimi.php' ? 'active' : ''; ?>" 
+                           href="kullanici-yonetimi.php">
                             <i class="fas fa-users"></i>
-                            <span>Kullanıcılar</span>
+                            <span>Kullanıcı Yönetimi</span>
                         </a>
                     </li>
                     
