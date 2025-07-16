@@ -8,10 +8,15 @@
  * =====================================================
  */
 
+// Include necessary files
+require_once 'includes/database.php';
+require_once 'includes/functions.php';
+require_once 'includes/security.php';
+
 // Sayfa değişkenleri
 $pageTitle = '';
-$metaDescription = getSetting('site_description');
-$metaKeywords = getSetting('site_keywords');
+$metaDescription = getSetting('site_description', 'En iyi casino deneme bonusları');
+$metaKeywords = getSetting('site_keywords', 'deneme bonusu, casino bonusu, bedava bonus');
 $bodyClass = 'homepage';
 
 // Header dahil et

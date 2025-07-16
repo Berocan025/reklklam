@@ -8,7 +8,7 @@
  * =====================================================
  */
 
-require_once dirname(__FILE__) . '/../config/database.php';
+// Database connection will be handled separately
 
 /**
  * Site ayarlarını getir
@@ -474,6 +474,156 @@ function clearCache($key = null) {
         foreach ($files as $file) {
             unlink($file);
         }
+    }
+}
+
+/**
+ * Time ago fonksiyonu - zaman farkını insanca gösterir
+ */
+function timeAgo($datetime) {
+    $time = time() - strtotime($datetime);
+    
+    if ($time < 60) {
+        return $time . ' saniye önce';
+    } elseif ($time < 3600) {
+        return floor($time / 60) . ' dakika önce';
+    } elseif ($time < 86400) {
+        return floor($time / 3600) . ' saat önce';
+    } elseif ($time < 2592000) {
+        return floor($time / 86400) . ' gün önce';
+    } elseif ($time < 31536000) {
+        return floor($time / 2592000) . ' ay önce';
+    } else {
+        return floor($time / 31536000) . ' yıl önce';
+    }
+}
+
+/**
+ * Query string oluşturucu - sayfalama için
+ */
+function buildQueryString($excludeParams = []) {
+    $params = $_GET;
+    
+    // Excluded parametreleri kaldır
+    foreach ($excludeParams as $param) {
+        unset($params[$param]);
+    }
+    
+    if (empty($params)) {
+        return '';
+    }
+    
+    return '&' . http_build_query($params);
+}
+
+/**
+ * Admin oturum kontrolü
+ */
+function isAdminLoggedIn() {
+    return isset($_SESSION['admin_id']) && !empty($_SESSION['admin_id']);
+}
+
+/**
+ * Mevcut admin bilgilerini getir
+ */
+function getCurrentAdmin() {
+    global $pdo;
+    
+    if (!isAdminLoggedIn()) {
+        return null;
+    }
+    
+    try {
+        $stmt = $pdo->prepare("SELECT * FROM admin_users WHERE id = ? AND is_active = 1");
+        $stmt->execute([$_SESSION['admin_id']]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+/**
+ * Admin yetki kontrolü
+ */
+function hasAdminPermission($permission) {
+    $admin = getCurrentAdmin();
+    
+    if (!$admin) {
+        return false;
+    }
+    
+    // Super Admin her şeyi yapabilir
+    if ($admin['role'] === 'Super Admin') {
+        return true;
+    }
+    
+    // Rol bazında yetki kontrolü
+    $permissions = [
+        'Admin' => ['manage_content', 'manage_users', 'manage_system'],
+        'Editor' => ['manage_content'],
+        'Viewer' => []
+    ];
+    
+    $userPermissions = $permissions[$admin['role']] ?? [];
+    
+    return in_array($permission, $userPermissions);
+}
+
+/**
+ * Format money - para formatı
+ */
+function formatMoney($amount, $currency = '₺') {
+    return number_format($amount, 0, ',', '.') . $currency;
+}
+
+/**
+ * Truncate text - metni kısalt
+ */
+function truncateText($text, $length = 100, $suffix = '...') {
+    if (mb_strlen($text) <= $length) {
+        return $text;
+    }
+    
+    return mb_substr($text, 0, $length) . $suffix;
+}
+
+/**
+ * Get client IP address
+ */
+function getClientIP() {
+    $ipKeys = ['HTTP_X_FORWARDED_FOR', 'HTTP_X_REAL_IP', 'HTTP_CLIENT_IP', 'REMOTE_ADDR'];
+    
+    foreach ($ipKeys as $key) {
+        if (array_key_exists($key, $_SERVER) === true) {
+            foreach (explode(',', $_SERVER[$key]) as $ip) {
+                $ip = trim($ip);
+                if (filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE) !== false) {
+                    return $ip;
+                }
+            }
+        }
+    }
+    
+    return $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+}
+
+/**
+ * Log işlemi
+ */
+function logActivity($action, $details = '', $user_id = null) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("INSERT INTO activity_logs (user_id, action, details, ip_address, user_agent, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $user_id ?: ($_SESSION['admin_id'] ?? null),
+            $action,
+            $details,
+            getClientIP(),
+            $_SERVER['HTTP_USER_AGENT'] ?? ''
+        ]);
+    } catch (Exception $e) {
+        // Log hatası - sessizce geç
     }
 }
 ?>

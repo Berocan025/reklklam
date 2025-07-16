@@ -2,14 +2,14 @@
 /**
  * =====================================================
  * BonusBoss Casino Deneme Bonusu Sitesi
- * Güvenlik Fonksiyonları
+ * Security Functions
  * Geliştirici: BERAT K
  * Tarih: 2024
  * =====================================================
  */
 
 /**
- * SQL injection koruması
+ * Input sanitization
  */
 function sanitizeInput($input) {
     if (is_array($input)) {
@@ -19,489 +19,279 @@ function sanitizeInput($input) {
         return $input;
     }
     
-    // HTML tag'lerini temizle
-    $input = strip_tags($input);
+    // Remove null bytes
+    $input = str_replace("\0", '', $input);
     
-    // Özel karakterleri encode et
-    $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
-    
-    // Fazla boşlukları temizle
+    // Trim whitespace
     $input = trim($input);
     
-    return $input;
-}
-
-/**
- * XSS koruması
- */
-function preventXSS($input) {
+    // Convert special characters
     $input = htmlspecialchars($input, ENT_QUOTES, 'UTF-8');
     
-    // JavaScript event handler'ları kaldır
-    $input = preg_replace('/on\w+\s*=\s*["\'][^"\']*["\']/i', '', $input);
-    
-    // JavaScript protokolünü kaldır
-    $input = preg_replace('/javascript:/i', '', $input);
-    
-    // Data URI'leri kaldır
-    $input = preg_replace('/data:/i', '', $input);
-    
     return $input;
 }
 
 /**
- * CSRF token doğrulama
+ * Clean string for database
  */
-function requireCSRF() {
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $token = $_POST[CSRF_TOKEN_NAME] ?? '';
-        
-        if (!verifyCSRFToken($token)) {
-            http_response_code(403);
-            die('CSRF token doğrulaması başarısız!');
-        }
-    }
+function cleanString($string) {
+    return strip_tags(trim($string));
 }
 
 /**
- * Admin oturum kontrolü
+ * Sanitize HTML content
  */
-function requireAdmin($redirectUrl = 'login.php') {
-    session_start();
+function sanitizeHtml($html) {
+    // Allowed tags for rich content
+    $allowed_tags = '<p><br><strong><b><em><i><u><ul><ol><li><a><h1><h2><h3><h4><h5><h6>';
     
-    if (!isset($_SESSION['admin_id']) || !isset($_SESSION['admin_logged_in'])) {
-        header('Location: ' . $redirectUrl);
-        exit;
-    }
-    
-    // Oturum süresini kontrol et
-    if (isset($_SESSION['last_activity']) && 
-        (time() - $_SESSION['last_activity']) > SESSION_LIFETIME) {
-        
-        destroyAdminSession();
-        header('Location: ' . $redirectUrl . '?timeout=1');
-        exit;
-    }
-    
-    $_SESSION['last_activity'] = time();
-    
-    return getAdminUser($_SESSION['admin_id']);
+    return strip_tags($html, $allowed_tags);
 }
 
 /**
- * Admin kullanıcı bilgilerini getir
+ * Generate CSRF token
  */
-function getAdminUser($adminId) {
-    global $db;
-    
-    $admin = $db->fetchOne(
-        "SELECT id, username, email, role, status FROM admins WHERE id = ? AND status = 1",
-        [$adminId]
-    );
-    
-    if (!$admin) {
-        destroyAdminSession();
-        header('Location: login.php');
-        exit;
+function generateCSRFToken() {
+    if (!isset($_SESSION['csrf_token'])) {
+        $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
-    
-    return $admin;
+    return $_SESSION['csrf_token'];
 }
 
 /**
- * Admin yetki kontrolü
+ * Verify CSRF token
  */
-function hasPermission($permission, $admin = null) {
-    if (!$admin) {
-        $admin = $_SESSION['admin_data'] ?? null;
-    }
-    
-    if (!$admin) {
-        return false;
-    }
-    
-    // Süper admin her şeyi yapabilir
-    if ($admin['role'] === 'super_admin') {
-        return true;
-    }
-    
-    // Yetki matrisi
-    $permissions = [
-        'admin' => [
-            'view_dashboard', 'manage_content', 'manage_banners', 
-            'manage_bonuses', 'manage_sites', 'view_analytics'
-        ],
-        'editor' => [
-            'view_dashboard', 'manage_content', 'manage_bonuses', 'manage_sites'
-        ],
-        'moderator' => [
-            'view_dashboard', 'manage_content'
-        ]
-    ];
-    
-    $userPermissions = $permissions[$admin['role']] ?? [];
-    
-    return in_array($permission, $userPermissions);
+function verifyCSRFToken($token) {
+    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
 /**
- * Admin oturumunu başlat
+ * Generate random string
  */
-function createAdminSession($admin) {
-    session_start();
-    session_regenerate_id(true);
-    
-    $_SESSION['admin_id'] = $admin['id'];
-    $_SESSION['admin_logged_in'] = true;
-    $_SESSION['admin_data'] = $admin;
-    $_SESSION['last_activity'] = time();
-    $_SESSION['login_time'] = time();
-    
-    // Giriş kaydını güncelle
-    global $db;
-    $db->query(
-        "UPDATE admins SET last_login = NOW(), login_ip = ? WHERE id = ?",
-        [getUserIP(), $admin['id']]
-    );
-    
-    // Log kaydı oluştur
-    createLog('Admin Login', 'admins', $admin['id']);
+function generateRandomString($length = 32) {
+    return bin2hex(random_bytes($length / 2));
 }
 
 /**
- * Admin oturumunu sonlandır
- */
-function destroyAdminSession() {
-    session_start();
-    
-    // Log kaydı oluştur
-    if (isset($_SESSION['admin_id'])) {
-        createLog('Admin Logout', 'admins', $_SESSION['admin_id']);
-    }
-    
-    session_unset();
-    session_destroy();
-    
-    // Session cookie'sini sil
-    if (ini_get("session.use_cookies")) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000,
-            $params["path"], $params["domain"],
-            $params["secure"], $params["httponly"]
-        );
-    }
-}
-
-/**
- * Şifre hash'le
+ * Hash password
  */
 function hashPassword($password) {
     return password_hash($password, PASSWORD_DEFAULT);
 }
 
 /**
- * Şifre doğrula
+ * Verify password
  */
 function verifyPassword($password, $hash) {
     return password_verify($password, $hash);
 }
 
 /**
- * Güçlü şifre kontrolü
- */
-function isStrongPassword($password) {
-    // En az 8 karakter
-    if (strlen($password) < 8) {
-        return false;
-    }
-    
-    // En az bir büyük harf
-    if (!preg_match('/[A-Z]/', $password)) {
-        return false;
-    }
-    
-    // En az bir küçük harf
-    if (!preg_match('/[a-z]/', $password)) {
-        return false;
-    }
-    
-    // En az bir rakam
-    if (!preg_match('/[0-9]/', $password)) {
-        return false;
-    }
-    
-    // En az bir özel karakter
-    if (!preg_match('/[^A-Za-z0-9]/', $password)) {
-        return false;
-    }
-    
-    return true;
-}
-
-/**
- * Dosya yükleme güvenliği
- */
-function validateUpload($file) {
-    $errors = [];
-    
-    // Dosya yüklendi mi kontrol et
-    if ($file['error'] !== UPLOAD_ERR_OK) {
-        $errors[] = 'Dosya yükleme hatası: ' . $file['error'];
-        return $errors;
-    }
-    
-    // Dosya boyutu kontrolü
-    if ($file['size'] > MAX_FILE_SIZE) {
-        $errors[] = 'Dosya boyutu çok büyük. Maksimum: ' . formatFileSize(MAX_FILE_SIZE);
-    }
-    
-    // Dosya uzantısı kontrolü
-    $fileExtension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-    $allowedTypes = array_merge(ALLOWED_IMAGE_TYPES, ALLOWED_VIDEO_TYPES);
-    
-    if (!in_array($fileExtension, $allowedTypes)) {
-        $errors[] = 'Geçersiz dosya türü. İzin verilen türler: ' . implode(', ', $allowedTypes);
-    }
-    
-    // MIME type kontrolü
-    $allowedMimes = [
-        'jpg' => 'image/jpeg',
-        'jpeg' => 'image/jpeg',
-        'png' => 'image/png',
-        'gif' => 'image/gif',
-        'webp' => 'image/webp',
-        'mp4' => 'video/mp4',
-        'webm' => 'video/webm',
-        'ogg' => 'video/ogg'
-    ];
-    
-    if (isset($allowedMimes[$fileExtension])) {
-        $expectedMime = $allowedMimes[$fileExtension];
-        $actualMime = mime_content_type($file['tmp_name']);
-        
-        if ($actualMime !== $expectedMime) {
-            $errors[] = 'Dosya içeriği uzantısıyla uyuşmuyor.';
-        }
-    }
-    
-    // Görüntü dosyası ise boyut kontrolü
-    if (in_array($fileExtension, ALLOWED_IMAGE_TYPES)) {
-        $imageInfo = getimagesize($file['tmp_name']);
-        if ($imageInfo === false) {
-            $errors[] = 'Geçersiz görüntü dosyası.';
-        }
-    }
-    
-    return $errors;
-}
-
-/**
- * Güvenli dosya adı oluştur
- */
-function generateSecureFilename($originalName) {
-    $extension = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-    $timestamp = time();
-    $randomString = bin2hex(random_bytes(8));
-    
-    return $timestamp . '_' . $randomString . '.' . $extension;
-}
-
-/**
  * Rate limiting
  */
-function checkRateLimit($key, $maxAttempts = 5, $timeWindow = 300) {
-    $cacheKey = 'rate_limit_' . $key;
-    $attempts = getCache($cacheKey);
+function checkRateLimit($key, $max_attempts = 5, $time_window = 300) {
+    global $pdo;
     
-    if ($attempts === false) {
-        $attempts = 0;
+    try {
+        // Clean old attempts
+        $pdo->prepare("DELETE FROM rate_limits WHERE created_at < DATE_SUB(NOW(), INTERVAL ? SECOND)")
+            ->execute([$time_window]);
+        
+        // Count current attempts
+        $stmt = $pdo->prepare("SELECT COUNT(*) FROM rate_limits WHERE identifier = ? AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)");
+        $stmt->execute([$key, $time_window]);
+        $attempts = $stmt->fetchColumn();
+        
+        if ($attempts >= $max_attempts) {
+            return false;
+        }
+        
+        // Log this attempt
+        $stmt = $pdo->prepare("INSERT INTO rate_limits (identifier, ip_address, created_at) VALUES (?, ?, NOW())");
+        $stmt->execute([$key, $_SERVER['REMOTE_ADDR'] ?? '']);
+        
+        return true;
+        
+    } catch (Exception $e) {
+        // If rate limiting fails, allow the request
+        return true;
+    }
+}
+
+/**
+ * Validate email
+ */
+function isValidEmail($email) {
+    return filter_var($email, FILTER_VALIDATE_EMAIL) !== false;
+}
+
+/**
+ * Validate URL
+ */
+function isValidUrl($url) {
+    return filter_var($url, FILTER_VALIDATE_URL) !== false;
+}
+
+/**
+ * Validate phone number (Turkish format)
+ */
+function isValidPhone($phone) {
+    $phone = preg_replace('/[^0-9]/', '', $phone);
+    return preg_match('/^(90|0)?5[0-9]{9}$/', $phone);
+}
+
+/**
+ * XSS Protection
+ */
+function preventXSS($data) {
+    if (is_array($data)) {
+        foreach ($data as $key => $value) {
+            $data[$key] = preventXSS($value);
+        }
+        return $data;
     }
     
-    if ($attempts >= $maxAttempts) {
+    return htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * SQL Injection protection (additional layer)
+ */
+function escapeSQLWildcards($string) {
+    return str_replace(['%', '_'], ['\%', '\_'], $string);
+}
+
+/**
+ * File upload security check
+ */
+function isValidUpload($file, $allowed_types = ['jpg', 'jpeg', 'png', 'gif']) {
+    // Check if file was uploaded
+    if (!isset($file['tmp_name']) || !is_uploaded_file($file['tmp_name'])) {
         return false;
     }
     
-    setCache($cacheKey, $attempts + 1, $timeWindow);
-    return true;
-}
-
-/**
- * IP adresi engelleme kontrolü
- */
-function isIPBlocked($ip = null) {
-    if (!$ip) {
-        $ip = getUserIP();
+    // Check file size
+    if ($file['size'] > MAX_UPLOAD_SIZE) {
+        return false;
     }
     
-    // Basit IP engelleme listesi (gerçek uygulamada veritabanında tutulabilir)
-    $blockedIPs = [
-        // Örnek bloklu IP'ler
-    ];
-    
-    return in_array($ip, $blockedIPs);
-}
-
-/**
- * User agent doğrulama
- */
-function isValidUserAgent($userAgent = null) {
-    if (!$userAgent) {
-        $userAgent = getUserAgent();
+    // Check file extension
+    $extension = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
+    if (!in_array($extension, $allowed_types)) {
+        return false;
     }
     
-    // Şüpheli user agent'ları filtrele
-    $suspiciousAgents = [
-        'curl',
-        'wget',
-        'bot',
-        'crawler',
-        'spider'
+    // Check MIME type
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime_type = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+    
+    $allowed_mimes = [
+        'jpg' => 'image/jpeg',
+        'jpeg' => 'image/jpeg', 
+        'png' => 'image/png',
+        'gif' => 'image/gif'
     ];
     
-    $userAgentLower = strtolower($userAgent);
-    
-    foreach ($suspiciousAgents as $suspicious) {
-        if (strpos($userAgentLower, $suspicious) !== false) {
-            return false;
-        }
+    if (!isset($allowed_mimes[$extension]) || $mime_type !== $allowed_mimes[$extension]) {
+        return false;
     }
     
     return true;
 }
 
 /**
- * Honeypot alanı kontrolü
+ * Secure redirect
  */
-function checkHoneypot($honeypotField = 'website') {
-    return !empty($_POST[$honeypotField]);
-}
-
-/**
- * SQL injection tespit etme
- */
-function detectSQLInjection($input) {
-    $sqlPatterns = [
-        '/(\bUNION\b|\bSELECT\b|\bINSERT\b|\bUPDATE\b|\bDELETE\b|\bDROP\b)/i',
-        '/(\bOR\b|\bAND\b)\s+\d+\s*=\s*\d+/i',
-        '/[\'"]\s*(OR|AND)\s+[\'"]/i',
-        '/[\'"]\s*;\s*(DROP|DELETE|INSERT|UPDATE)/i'
-    ];
-    
-    foreach ($sqlPatterns as $pattern) {
-        if (preg_match($pattern, $input)) {
-            return true;
+function secureRedirect($url) {
+    // Only allow relative URLs or same domain
+    if (filter_var($url, FILTER_VALIDATE_URL)) {
+        $parsed = parse_url($url);
+        $current_host = $_SERVER['HTTP_HOST'];
+        
+        if ($parsed['host'] !== $current_host) {
+            $url = '/';
         }
     }
     
-    return false;
-}
-
-/**
- * XSS tespit etme
- */
-function detectXSS($input) {
-    $xssPatterns = [
-        '/<script[^>]*>.*?<\/script>/i',
-        '/javascript:/i',
-        '/on\w+\s*=/i',
-        '/<iframe[^>]*>/i',
-        '/<object[^>]*>/i',
-        '/<embed[^>]*>/i'
-    ];
-    
-    foreach ($xssPatterns as $pattern) {
-        if (preg_match($pattern, $input)) {
-            return true;
-        }
-    }
-    
-    return false;
-}
-
-/**
- * Güvenlik logları
- */
-function logSecurityEvent($event, $details = []) {
-    $logData = [
-        'timestamp' => date('Y-m-d H:i:s'),
-        'ip' => getUserIP(),
-        'user_agent' => getUserAgent(),
-        'event' => $event,
-        'details' => $details
-    ];
-    
-    $logFile = ROOT_PATH . '/logs/security_' . date('Y-m-d') . '.log';
-    $logDir = dirname($logFile);
-    
-    if (!is_dir($logDir)) {
-        mkdir($logDir, 0755, true);
-    }
-    
-    file_put_contents($logFile, json_encode($logData) . "\n", FILE_APPEND | LOCK_EX);
-}
-
-/**
- * Güvenlik middleware
- */
-function securityMiddleware() {
-    // IP engelleme kontrolü
-    if (isIPBlocked()) {
-        http_response_code(403);
-        die('IP adresiniz engellenmiştir.');
-    }
-    
-    // Rate limiting kontrolü
-    $rateKey = getUserIP() . '_' . $_SERVER['REQUEST_URI'];
-    if (!checkRateLimit($rateKey, 100, 60)) { // Dakikada 100 istek
-        http_response_code(429);
-        die('Çok fazla istek gönderdiniz. Lütfen bekleyin.');
-    }
-    
-    // SQL injection kontrolü
-    foreach ($_REQUEST as $key => $value) {
-        if (is_string($value) && detectSQLInjection($value)) {
-            logSecurityEvent('SQL Injection Attempt', ['field' => $key, 'value' => $value]);
-            http_response_code(403);
-            die('Güvenlik ihlali tespit edildi.');
-        }
-    }
-    
-    // XSS kontrolü
-    foreach ($_REQUEST as $key => $value) {
-        if (is_string($value) && detectXSS($value)) {
-            logSecurityEvent('XSS Attempt', ['field' => $key, 'value' => $value]);
-            http_response_code(403);
-            die('Güvenlik ihlali tespit edildi.');
-        }
-    }
-}
-
-/**
- * Güvenli yönlendirme
- */
-function safeRedirect($url, $allowedDomains = []) {
-    // Varsayılan olarak aynı domain'e izin ver
-    $allowedDomains[] = $_SERVER['HTTP_HOST'];
-    
-    $parsedUrl = parse_url($url);
-    
-    // Relative URL ise güvenli
-    if (!isset($parsedUrl['host'])) {
-        header('Location: ' . $url);
-        exit;
-    }
-    
-    // İzin verilen domain'ler arasında mı?
-    if (in_array($parsedUrl['host'], $allowedDomains)) {
-        header('Location: ' . $url);
-        exit;
-    }
-    
-    // Güvenli değilse ana sayfaya yönlendir
-    header('Location: /');
+    header('Location: ' . $url);
     exit;
 }
 
-// Her sayfada güvenlik kontrolü çalıştır
-securityMiddleware();
+/**
+ * Clean filename for uploads
+ */
+function cleanFilename($filename) {
+    // Remove special characters
+    $filename = preg_replace('/[^a-zA-Z0-9._-]/', '', $filename);
+    
+    // Remove multiple dots
+    $filename = preg_replace('/\.+/', '.', $filename);
+    
+    // Limit length
+    if (strlen($filename) > 100) {
+        $filename = substr($filename, 0, 100);
+    }
+    
+    return $filename;
+}
+
+/**
+ * IP Whitelist check
+ */
+function isIPWhitelisted($ip = null) {
+    if ($ip === null) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    }
+    
+    // Admin IP whitelist (configure as needed)
+    $whitelist = [
+        '127.0.0.1',
+        '::1'
+    ];
+    
+    return in_array($ip, $whitelist);
+}
+
+/**
+ * Brute force protection
+ */
+function checkBruteForce($identifier, $max_attempts = 5, $lockout_time = 1800) {
+    global $pdo;
+    
+    try {
+        // Check failed attempts
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) FROM login_attempts 
+            WHERE identifier = ? 
+            AND success = 0 
+            AND created_at > DATE_SUB(NOW(), INTERVAL ? SECOND)
+        ");
+        $stmt->execute([$identifier, $lockout_time]);
+        $failed_attempts = $stmt->fetchColumn();
+        
+        return $failed_attempts < $max_attempts;
+        
+    } catch (Exception $e) {
+        return true;
+    }
+}
+
+/**
+ * Log login attempt
+ */
+function logLoginAttempt($identifier, $success = false, $ip = null) {
+    global $pdo;
+    
+    if ($ip === null) {
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    }
+    
+    try {
+        $stmt = $pdo->prepare("INSERT INTO login_attempts (identifier, ip_address, success, created_at) VALUES (?, ?, ?, NOW())");
+        $stmt->execute([$identifier, $ip, $success ? 1 : 0]);
+    } catch (Exception $e) {
+        // Silent fail
+    }
+}
 ?>

@@ -9,8 +9,9 @@
  */
 
 // Database ve security dahil et
-require_once '../config/database.php';
-require_once '../includes/security.php';
+require_once dirname(__FILE__) . '/../../includes/database.php';
+require_once dirname(__FILE__) . '/../../includes/functions.php';
+require_once dirname(__FILE__) . '/../../includes/security.php';
 
 // Session başlat
 if (session_status() === PHP_SESSION_NONE) {
