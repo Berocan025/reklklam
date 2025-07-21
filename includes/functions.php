@@ -19,9 +19,14 @@ function getSetting($key, $default = '') {
     static $settings = [];
     
     if (empty($settings)) {
-        $settingsData = $db->fetchAll("SELECT setting_key, setting_value FROM settings WHERE 1");
-        foreach ($settingsData as $setting) {
-            $settings[$setting['setting_key']] = $setting['setting_value'];
+        try {
+            $settingsData = $db->fetchAll("SELECT setting_key, setting_value FROM settings WHERE 1");
+            foreach ($settingsData as $setting) {
+                $settings[$setting['setting_key']] = $setting['setting_value'];
+            }
+        } catch (Exception $e) {
+            // Eğer settings tablosu yoksa veya hata varsa, varsayılan değerleri kullan
+            return $default;
         }
     }
     
