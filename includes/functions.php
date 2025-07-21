@@ -184,22 +184,7 @@ function generateToken($length = 32) {
     return bin2hex(random_bytes($length / 2));
 }
 
-/**
- * CSRF token oluştur
- */
-function generateCSRFToken() {
-    if (!isset($_SESSION['csrf_token'])) {
-        $_SESSION['csrf_token'] = generateToken();
-    }
-    return $_SESSION['csrf_token'];
-}
 
-/**
- * CSRF token doğrula
- */
-function verifyCSRFToken($token) {
-    return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
-}
 
 /**
  * Form field oluştur
@@ -242,20 +227,7 @@ function formatFileSize($size) {
     return round($size, 2) . ' ' . $units[$unit];
 }
 
-/**
- * IP adresini al
- */
-function getUserIP() {
-    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        return $_SERVER['HTTP_X_FORWARDED_FOR'];
-    } elseif (!empty($_SERVER['HTTP_X_REAL_IP'])) {
-        return $_SERVER['HTTP_X_REAL_IP'];
-    } elseif (!empty($_SERVER['HTTP_CLIENT_IP'])) {
-        return $_SERVER['HTTP_CLIENT_IP'];
-    } else {
-        return $_SERVER['REMOTE_ADDR'];
-    }
-}
+
 
 /**
  * User agent bilgisini al
@@ -287,7 +259,7 @@ function createLog($action, $tableName = null, $recordId = null, $oldValues = nu
     global $db;
     
     $adminId = $_SESSION['admin_id'] ?? null;
-    $ipAddress = getUserIP();
+    $ipAddress = getClientIP();
     $userAgent = getUserAgent();
     
     return $db->query(
@@ -314,7 +286,7 @@ function trackPageView() {
     
     if (getSetting('analytics_enabled', '1') == '1') {
         $pageUrl = $_SERVER['REQUEST_URI'];
-        $visitorIp = getUserIP();
+        $visitorIp = getClientIP();
         $userAgent = getUserAgent();
         $referer = $_SERVER['HTTP_REFERER'] ?? '';
         $sessionId = session_id();
