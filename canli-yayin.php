@@ -14,6 +14,12 @@ $metaDescription = 'Casino oyunlarını canlı izleyin! Twitch, YouTube ve Kick 
 $metaKeywords = 'canlı yayın, casino yayını, twitch casino, youtube casino, kick casino';
 $bodyClass = 'live-streams-page';
 
+// Include necessary files
+require_once 'config/config.php';
+require_once 'includes/database.php';
+require_once 'includes/functions.php';
+require_once 'includes/security.php';
+
 // Header dahil et
 include 'includes/header.php';
 

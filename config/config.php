@@ -25,7 +25,7 @@ define('SITE_URL', 'https://kurumsalv8.webtasarimci.app');
 
 // Database configuration
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'bonusboss_db');
+define('DB_NAME', 'bonusboss');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
@@ -54,10 +54,12 @@ define('LOGS_PATH', ROOT_PATH . '/logs');
 // URLs
 define('ASSETS_URL', '/assets');
 define('UPLOADS_URL', '/uploads');
+define('ADMIN_URL', '/admin');
 
 // Cache settings
 define('CACHE_ENABLED', true);
 define('CACHE_DURATION', 3600); // 1 hour
+define('CACHE_LIFETIME', 3600); // 1 hour
 
 // Pagination
 define('ITEMS_PER_PAGE', 20);

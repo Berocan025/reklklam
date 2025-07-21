@@ -9,6 +9,7 @@
  */
 
 // Database ve security dahil et
+require_once dirname(__FILE__) . '/../../config/config.php';
 require_once dirname(__FILE__) . '/../../includes/database.php';
 require_once dirname(__FILE__) . '/../../includes/functions.php';
 require_once dirname(__FILE__) . '/../../includes/security.php';

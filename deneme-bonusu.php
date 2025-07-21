@@ -14,6 +14,12 @@ $metaDescription = 'En yüksek deneme bonusları burada! Hilesiz, anında çekim
 $metaKeywords = 'deneme bonusu, casino bonus, bedava bonus, deneme bonusu veren siteler';
 $bodyClass = 'bonuses-page';
 
+// Include necessary files
+require_once 'config/config.php';
+require_once 'includes/database.php';
+require_once 'includes/functions.php';
+require_once 'includes/security.php';
+
 // Header dahil et
 include 'includes/header.php';
 

@@ -14,6 +14,12 @@ $metaDescription = 'BonusBoss ile iletişime geçin. Sorularınız, önerilerini
 $metaKeywords = 'iletişim, bonusboss, casino bonus, destek, müşteri hizmetleri';
 $bodyClass = 'contact-page';
 
+// Include necessary files
+require_once 'config/config.php';
+require_once 'includes/database.php';
+require_once 'includes/functions.php';
+require_once 'includes/security.php';
+
 // Header dahil et
 include 'includes/header.php';
 

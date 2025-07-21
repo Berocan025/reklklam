@@ -569,23 +569,9 @@ function hasAdminPermission($permission) {
     return in_array($permission, $userPermissions);
 }
 
-/**
- * Format money - para formatı
- */
-function formatMoney($amount, $currency = '₺') {
-    return number_format($amount, 0, ',', '.') . $currency;
-}
 
-/**
- * Truncate text - metni kısalt
- */
-function truncateText($text, $length = 100, $suffix = '...') {
-    if (mb_strlen($text) <= $length) {
-        return $text;
-    }
-    
-    return mb_substr($text, 0, $length) . $suffix;
-}
+
+
 
 /**
  * Get client IP address

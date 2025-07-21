@@ -14,6 +14,12 @@ $metaDescription = 'BonusBoss hakkında bilgi edinin. Misyonumuz, vizyonumuz ve 
 $metaKeywords = 'hakkımızda, bonusboss, casino bonus, güvenilir site, misyon, vizyon';
 $bodyClass = 'about-page';
 
+// Include necessary files
+require_once 'config/config.php';
+require_once 'includes/database.php';
+require_once 'includes/functions.php';
+require_once 'includes/security.php';
+
 // Header dahil et
 include 'includes/header.php';
 
