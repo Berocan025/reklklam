@@ -13,9 +13,17 @@ if (!defined('BONUSBOSS_LOADED')) {
     define('BONUSBOSS_LOADED', true);
 }
 
-// Error reporting for development (set to 0 for production)
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
+// Development mode (set to false for production)
+define('DEVELOPMENT', true);
+
+// Error reporting
+if (DEVELOPMENT) {
+    error_reporting(E_ALL);
+    ini_set('display_errors', 1);
+} else {
+    error_reporting(0);
+    ini_set('display_errors', 0);
+}
 
 // Site configuration
 define('SITE_NAME', 'BonusBoss');
@@ -23,7 +31,7 @@ define('SITE_DESCRIPTION', 'En iyi casino deneme bonusları ve güvenilir casino
 define('SITE_KEYWORDS', 'deneme bonusu, casino bonusu, bedava bonus, casino siteleri');
 define('SITE_URL', 'https://kurumsalv8.webtasarimci.app');
 
-// Database configuration
+// Database configuration - CONFIGURE THESE FOR YOUR SERVER
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'bonusboss');
 define('DB_USER', 'root');
@@ -33,11 +41,14 @@ define('DB_CHARSET', 'utf8mb4');
 // Security
 define('SECRET_KEY', 'BonusBoss2024_Secret_Key_' . md5(__DIR__));
 define('CSRF_TOKEN_NAME', 'csrf_token');
+define('ENCRYPTION_KEY', 'your-32-character-secret-key-here');
 
 // Session configuration
 ini_set('session.cookie_httponly', 1);
 ini_set('session.cookie_secure', 0); // Set to 1 for HTTPS
 ini_set('session.use_only_cookies', 1);
+define('SESSION_LIFETIME', 3600); // 1 hour
+define('REMEMBER_ME_LIFETIME', 2592000); // 30 days
 
 // Timezone
 date_default_timezone_set('Europe/Istanbul');
@@ -68,6 +79,7 @@ define('BONUSES_PER_PAGE', 12);
 // Upload settings
 define('MAX_UPLOAD_SIZE', 5 * 1024 * 1024); // 5MB
 define('ALLOWED_IMAGE_TYPES', ['jpg', 'jpeg', 'png', 'gif', 'webp']);
+define('ALLOWED_VIDEO_TYPES', ['mp4', 'webm', 'ogg']);
 
 // Mail settings (configure as needed)
 define('SMTP_HOST', '');
@@ -107,7 +119,7 @@ $required_dirs = [
 
 foreach ($required_dirs as $dir) {
     if (!is_dir($dir)) {
-        mkdir($dir, 0755, true);
+        @mkdir($dir, 0755, true);
     }
 }
 
@@ -121,6 +133,6 @@ $htaccess_content .= "</Files>\n";
 
 $htaccess_file = UPLOADS_PATH . '/.htaccess';
 if (!file_exists($htaccess_file)) {
-    file_put_contents($htaccess_file, $htaccess_content);
+    @file_put_contents($htaccess_file, $htaccess_content);
 }
 ?>
